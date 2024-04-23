@@ -1,0 +1,584 @@
+---
+title: "Lacto Summary File"
+author: "Leah Boger"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Packages
+```{r, message=FALSE}
+library(readr)
+library(agricolae)
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(EnvStats)
+library(writexl)
+library(ggbreak)
+library(hrbrthemes)
+```
+
+
+## Lcrispatus
+
+Load Data
+```{r, message=FALSE}
+lcrisp1 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/4315_3209_1_ANI.tsv", col_names = FALSE)
+lcrisp1ANI <- data.frame(lcrisp1)
+lcrisp1ANI <- lcrisp1ANI[,3]
+
+lcrisp3 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/4313_3209_3_ANI.tsv", col_names = FALSE)
+lcrisp3ANI <- data.frame(lcrisp3)
+lcrisp3ANI <- lcrisp3ANI[,3]
+
+lcrisp18 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3559_18_ANI.tsv", col_names = FALSE)
+lcrisp18ANI <- data.frame(lcrisp18)
+lcrisp18ANI <- lcrisp18ANI[,3]
+
+lcrisp19 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3559_19_ANI.tsv", col_names = FALSE)
+lcrisp19ANI <- data.frame(lcrisp19)
+lcrisp19ANI <- lcrisp19ANI[,3]
+
+lcrisp23 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3559_23_ANI.tsv", col_names = FALSE)
+lcrisp23ANI <- data.frame(lcrisp23)
+lcrisp23ANI <- lcrisp23ANI[,3]
+
+lcrisp24 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3513_24_ANI.tsv", col_names = FALSE)
+lcrisp24ANI <- data.frame(lcrisp24)
+lcrisp24ANI <- lcrisp24ANI[,3]
+
+lcrisp25 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3513_25_ANI.tsv", col_names = FALSE)
+lcrisp25ANI <- data.frame(lcrisp25)
+lcrisp25ANI <- lcrisp25ANI[,3]
+
+
+lcrisp26 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3559_26_ANI.tsv", col_names = FALSE)
+lcrisp26ANI <- data.frame(lcrisp26)
+lcrisp26ANI <- lcrisp26ANI[,3]
+
+
+lcrisp27 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3559_27_ANI.tsv", col_names = FALSE)
+lcrisp27ANI <- data.frame(lcrisp27)
+lcrisp27ANI <- lcrisp27ANI[,3]
+
+lcrisp30 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3513_30_ANI.tsv", col_names = FALSE)
+lcrisp30ANI <- data.frame(lcrisp30)
+lcrisp30ANI <- lcrisp30ANI[,3]
+
+lcrisp35 <- readr::read_tsv("/Users/leahboger/Desktop/Lcrispatus_ANI/3513_35_ANI.tsv", col_names = FALSE)
+lcrisp35ANI <- data.frame(lcrisp35)
+lcrisp35ANI <- lcrisp35ANI[,3]
+```
+
+Lcrispatus test for difference between strains
+```{r, message=FALSE}
+y <- c(lcrisp1ANI,lcrisp3ANI,lcrisp18ANI,lcrisp19ANI,lcrisp23ANI,lcrisp24ANI,lcrisp25ANI,lcrisp26ANI,lcrisp27ANI,lcrisp30ANI,lcrisp35ANI )
+
+strain <- rep(c("lcrisp1","lcrisp3","lcrisp18","lcrisp19","lcrisp23","lcrisp24","lcrisp25","lcrisp26","lcrisp27","lcrisp30","lcrisp35"), each = 25)
+
+l <- lm(y~strain)
+
+#anova(l)
+
+#check assumptions for normality and homoscedasticity
+shapiro.test(l$residuals)
+bartlett.test(l$resid, strain)
+
+#Assumption of homoscedasticity and normallity not met, use nonparametric ANOVA test
+kruskal.test(y~strain)
+#small p-val, so appears to be significant difference between strains
+```
+
+Lcrispatus post-hoc strain variance
+```{r, message=FALSE}
+TukeyHSD(aov(y~strain), conf.level=0.95)
+an.m<-aov(y~strain)
+l<- LSD.test(an.m,"strain",p.adj = "bonferroni")
+l
+```
+
+
+
+Lcrispatus kernal density
+```{r}
+all<-y 
+boot<-sample(all,size=10000,replace = TRUE)
+d<-density(boot) #kernel density estimation
+df<-data.frame(boot)
+df%>%
+  ggplot( aes(x=boot)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+
+  ggtitle("Density plot of ANI value for Lcrispatus") + xlab("ANI values(bootstrapped)")
+```
+empirical p-value
+```{r}
+
+testANI <- read.csv("/Users/leahboger/Desktop/Lacto_ANI (1)/LC_ANI-Table 1.csv")
+
+
+testANI$strain_loc1 <- paste(testANI$X, testANI$X.1)
+
+testANI <- testANI %>% select(strain_loc1, X3513_24, X3513_25, X3513_30, X3513_35, X3559_18, X3559_19,X3559_23, X3559_26, X3559_27, X4315_3209_1, X4313_3209_3)
+
+columns = paste(names(testANI),as.matrix(testANI[1,]))
+colnames(testANI) = columns
+
+testANI <- testANI[-1, ]
+colnames(testANI)[1] ="strain_loc1"
+
+testANI <- testANI %>% pivot_longer(-strain_loc1, names_to = "strain_loc2", values_to = "ANI")
+
+library(EnvStats)
+testANI$ANI <- as.numeric(testANI$ANI)
+emp <-rep(0,nrow(testANI))
+for(i in 1:nrow(testANI))
+{emp[i]<-pemp(testANI$ANI[i],boot, prob.method = "emp.probs")}
+t<-cbind(testANI,emp)
+head(t) %>% arrange(-emp)
+```
+
+
+## Ljensenii
+
+Load Data
+```{r, message=FALSE}
+ljensenii16 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_16_ANI.tsv", col_names = FALSE)
+ljensenii16ANI <- data.frame(ljensenii16)
+ljensenii16ANI <- ljensenii16ANI[,3]
+
+ljensenii17 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_17_ANI.tsv", col_names = FALSE)
+ljensenii17ANI <- data.frame(ljensenii17)
+ljensenii17ANI <- ljensenii17ANI[,3]
+
+ljensenii18 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_18_ANI.tsv", col_names = FALSE)
+ljensenii18ANI <- data.frame(ljensenii18)
+ljensenii18ANI <- ljensenii18ANI[,3]
+
+ljensenii19 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_19_ANI.tsv", col_names = FALSE)
+ljensenii19ANI <- data.frame(ljensenii19)
+ljensenii19ANI <- ljensenii19ANI[,3]
+
+ljensenii20 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_20_ANI.tsv", col_names = FALSE)
+ljensenii20ANI <- data.frame(ljensenii20)
+ljensenii20ANI <- ljensenii20ANI[,3]
+
+ljensenii21 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_21_ANI.tsv", col_names = FALSE)
+ljensenii21ANI <- data.frame(ljensenii21)
+ljensenii21ANI <- ljensenii21ANI[,3]
+
+ljensenii22 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_22_ANI.tsv", col_names = FALSE)
+ljensenii22ANI <- data.frame(ljensenii22)
+ljensenii22ANI <- ljensenii22ANI[,3]
+
+ljensenii23 <- readr::read_tsv("/Users/leahboger/Desktop/Ljensenii_ANI/2673_23_ANI.tsv", col_names = FALSE)
+ljensenii23ANI <- data.frame(ljensenii23)
+ljensenii23ANI <- ljensenii23ANI[,3]
+
+```
+
+Ljensenii test for difference between strain
+```{r, message=FALSE}
+y <- c(ljensenii16ANI, ljensenii17ANI, ljensenii18ANI, ljensenii19ANI, ljensenii20ANI, ljensenii21ANI, ljensenii22ANI, ljensenii23ANI)
+
+strain <- rep(c("ljensenii16", "ljensenii17", "ljensenii18", "ljensenii19", "ljensenii20", "ljensenii21", "ljensenii22", "ljensenii23"), each = 25)
+
+l <- lm(y~strain)
+
+#anova(l)
+
+#check assumptions for normality and homoscedasticity
+shapiro.test(l$residuals)
+bartlett.test(l$resid, strain)
+
+
+#Assumption of homoscedasticity and normallity not met, use nonparametric ANOVA test
+kruskal.test(y~strain)
+#small p-val, so appears to be significant difference between strains
+```
+
+
+Ljensenii post-hoc strain variance
+```{r, message=FALSE}
+TukeyHSD(aov(y~strain), conf.level=0.95)
+an.m<-aov(y~strain)
+l<- LSD.test(an.m,"strain",p.adj = "bonferroni")
+l
+```
+
+
+Ljensenii kernal density
+```{r}
+all<-y
+boot<-sample(all,size=10000,replace = TRUE)
+d<-density(boot) #kernel density estimation
+df<-data.frame(boot)
+df%>%
+  ggplot( aes(x=boot)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+
+  ggtitle("Density plot of ANI value for Ljensenii") + xlab("ANI values(bootstrapped)")
+```
+
+
+Ljensenii empirical p
+```{r}
+testANI <- read.csv("/Users/leahboger/Desktop/Lacto_ANI (1)/LJ_ANI-Table 1.csv")
+
+testANI$strain_loc1 <- paste(testANI$X, testANI$X.1)
+
+testANI <- testANI %>% select(strain_loc1, X2673_16, X2673_17, X2673_18, X2673_19, X2673_20, X2673_21, X2673_22, X2673_23)
+
+columns = paste(names(testANI),as.matrix(testANI[1,]))
+colnames(testANI) = columns
+
+testANI <- testANI[-1, ]
+colnames(testANI)[1] ="strain_loc1"
+
+testANI <- testANI %>% pivot_longer(-strain_loc1, names_to = "strain_loc2", values_to = "ANI")
+
+testANI$ANI <- as.numeric(testANI$ANI)
+emp<-rep(0,nrow(testANI))
+for(i in 1:nrow(testANI))
+{emp[i]<-pemp(testANI$ANI[i],boot,discrete = FALSE, prob.method = "emp.probs")}
+t<-cbind(testANI,emp)
+head(t) %>% arrange(-emp)
+```
+
+
+
+## Lparagasseri
+
+Load data
+```{r, message=FALSE}
+lparagasseri4 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/4892_3209_4_ANI.tsv", col_names = FALSE)
+lparagasseri4ANI <- data.frame(lparagasseri4)
+lparagasseri4ANI <- lparagasseri4ANI[,3]
+
+lparagasseri6 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/4933_3209_6_ANI.tsv", col_names = FALSE)
+lparagasseri6ANI <- data.frame(lparagasseri6)
+lparagasseri6ANI <- lparagasseri6ANI[,3]
+
+lparagasseri7 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/4898_3209_7_ANI.tsv", col_names = FALSE)
+lparagasseri7ANI <- data.frame(lparagasseri7)
+lparagasseri7ANI <- lparagasseri7ANI[,3]
+
+lparagasseri15 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3559_15_ANI.tsv", col_names = FALSE)
+lparagasseri15ANI <- data.frame(lparagasseri15)
+lparagasseri15ANI <- lparagasseri15ANI[,3]
+
+lparagasseri17 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3559_17_ANI.tsv", col_names = FALSE)
+lparagasseri17ANI <- data.frame(lparagasseri17)
+lparagasseri17ANI <- lparagasseri17ANI[,3]
+
+lparagasseri23 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_23_ANI.tsv", col_names = FALSE)
+lparagasseri23ANI <- data.frame(lparagasseri23)
+lparagasseri23ANI <- lparagasseri23ANI[,3]
+
+lparagasseri27 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_27_ANI.tsv", col_names = FALSE)
+lparagasseri27ANI <- data.frame(lparagasseri27)
+lparagasseri27ANI <- lparagasseri27ANI[,3]
+
+lparagasseri28 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_28_ANI.tsv", col_names = FALSE)
+lparagasseri28ANI <- data.frame(lparagasseri28)
+lparagasseri28ANI <- lparagasseri28ANI[,3]
+
+
+lparagasseri3513_31 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_31_ANI.tsv", col_names = FALSE)
+lparagasseri3513_31ANI <- data.frame(lparagasseri3513_31)
+lparagasseri3513_31ANI <- lparagasseri3513_31ANI[,3]
+
+lparagasseri3559_31 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3559_31_ANI.tsv", col_names = FALSE)
+lparagasseri3559_31ANI <- data.frame(lparagasseri3559_31)
+lparagasseri3559_31ANI <- lparagasseri3559_31ANI[,3]
+
+
+lparagasseri32 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_32_ANI.tsv", col_names = FALSE)
+lparagasseri32ANI <- data.frame(lparagasseri32)
+lparagasseri32ANI <- lparagasseri32ANI[,3]
+
+lparagasseri33 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_33_ANI.tsv", col_names = FALSE)
+lparagasseri33ANI <- data.frame(lparagasseri33)
+lparagasseri33ANI <- lparagasseri33ANI[,3]
+
+lparagasseri34 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3513_34_ANI.tsv", col_names = FALSE)
+lparagasseri34ANI <- data.frame(lparagasseri34)
+lparagasseri34ANI <- lparagasseri34ANI[,3]
+
+
+lparagasseri50 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3329_50_ANI.tsv", col_names = FALSE)
+lparagasseri50ANI <- data.frame(lparagasseri50)
+lparagasseri50ANI <- lparagasseri50ANI[,3]
+
+lparagasseri51 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3329_51_ANI.tsv", col_names = FALSE)
+lparagasseri51ANI <- data.frame(lparagasseri51)
+lparagasseri51ANI <- lparagasseri51ANI[,3]
+
+lparagasseri52 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3329_52_ANI.tsv", col_names = FALSE)
+lparagasseri52ANI <- data.frame(lparagasseri52)
+lparagasseri52ANI <- lparagasseri52ANI[,3]
+
+lparagasseri55 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3329_55_ANI.tsv", col_names = FALSE)
+lparagasseri55ANI <- data.frame(lparagasseri55)
+lparagasseri55ANI <- lparagasseri55ANI[,3]
+
+lparagasseri57 <- readr::read_tsv("/Users/leahboger/Desktop/Lparagasseri_ANI/3329_57_ANI.tsv", col_names = FALSE)
+lparagasseri57ANI <- data.frame(lparagasseri57)
+lparagasseri57ANI <- lparagasseri57ANI[,3]
+```
+
+
+
+Lparagasseri test for difference between strain
+```{r, message=FALSE}
+y <- c(lparagasseri4ANI, lparagasseri6ANI, lparagasseri7ANI, lparagasseri15ANI, lparagasseri17ANI, lparagasseri23ANI, lparagasseri27ANI, lparagasseri28ANI, lparagasseri3513_31ANI, lparagasseri3559_31ANI, lparagasseri32ANI, lparagasseri33ANI, lparagasseri34ANI, lparagasseri50ANI, lparagasseri51ANI, lparagasseri52ANI, lparagasseri55ANI, lparagasseri57ANI)
+
+strain <- rep(c("lparagasseri4", "lparagasseri6", "lparagasseri7", "lparagasseri15", "lparagasseri17", "lparagasseri23", "lparagasseri27", "lparagasseri28", "lparagasseri3513_31", "lparagasseri3559_31", "lparagasseri32", "lparagasseri33", "lparagasseri34", "lparagasseri50", "lparagasseri51", "lparagasseri52","lparagasseri55", "lparagasseri57"), each = 25)
+
+l <- lm(y~strain)
+
+#anova(l)
+
+#Check assumptions of homoskedacisity and normality
+shapiro.test(l$residuals)
+bartlett.test(l$resid, strain)
+
+
+#Assumptions are not met,use nonparametric ANOVA
+kruskal.test(y~strain)
+#small p-val, so appears to be significant difference between strains
+
+```
+
+Lparagasseri post-hoc strain variance
+```{r, message=FALSE}
+TukeyHSD(aov(y~strain), conf.level=0.95)
+an.m<-aov(y~strain)
+l<- LSD.test(an.m,"strain",p.adj = "bonferroni")
+l
+```
+
+
+Lparagasseri kernal density
+```{r}
+all<-y
+boot<-sample(all,size=10000,replace = TRUE)
+d<-density(boot) #kernel density estimation
+df<-data.frame(boot)
+df%>%
+  ggplot( aes(x=boot)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+
+  ggtitle("Density plot of ANI value for Lparagasseri") + xlab("ANI values(bootstrapped)")
+```
+
+Lparagasseri empirical p
+```{r}
+testANI <- read.csv("/Users/leahboger/Desktop/Lacto_ANI (1)/LP_ANI-Table 1.csv")
+
+testANI$strain_loc1 <- paste(testANI$X, testANI$X.1)
+
+testANI <- testANI %>% select(strain_loc1, X3329_50, X3329_51, X3329_52, X3329_55, X3329_57, X3513_23, X3513_27, X3513_28, X3513_31, X3513_32, X3513_33, X3513_34, X3559_15, X3559_17, X3559_31, X4892_3209_4, X4898_3209_7, X4933_3209_6)
+
+columns = paste(names(testANI),as.matrix(testANI[1,]))
+colnames(testANI) = columns
+
+testANI <- testANI[-1, ]
+colnames(testANI)[1] ="strain_loc1"
+
+testANI <- testANI %>% pivot_longer(-strain_loc1, names_to = "strain_loc2", values_to = "ANI")
+
+testANI$ANI <- as.numeric(testANI$ANI)
+emp<-rep(0,nrow(testANI))
+for(i in 1:nrow(testANI))
+  {emp[i]<-pemp(testANI$ANI[i],boot, prob.method = "emp.probs")}
+t<-cbind(testANI,emp)
+head(t) %>% arrange(-emp)
+```
+
+
+## Liners
+
+Load data
+```{r, message=FALSE}
+liners24 <- readr::read_tsv("/Users/leahboger/Desktop/Liners_ANI/3559_24_ANI.tsv", col_names = FALSE)
+liners24ANI <- data.frame(liners24)
+liners24ANI <- liners24ANI[,3]
+
+liners25 <- readr::read_tsv("/Users/leahboger/Desktop/Liners_ANI/3559_25_ANI.tsv", col_names = FALSE)
+liners25ANI <- data.frame(liners25)
+liners25ANI <- liners25ANI[,3]
+
+liners28 <- readr::read_tsv("/Users/leahboger/Desktop/Liners_ANI/3559_28_ANI.tsv", col_names = FALSE)
+liners28ANI <- data.frame(liners28)
+liners28ANI <- liners28ANI[,3]
+
+liners29 <- readr::read_tsv("/Users/leahboger/Desktop/Liners_ANI/3559_29_ANI.tsv", col_names = FALSE)
+liners29ANI <- data.frame(liners29)
+liners29ANI <- liners29ANI[,3]
+
+liners30 <- readr::read_tsv("/Users/leahboger/Desktop/Liners_ANI/3559_30_ANI.tsv", col_names = FALSE)
+liners30ANI <- data.frame(liners30)
+liners30ANI <- liners30ANI[,3]
+```
+
+
+
+Liners test for difference between strain
+```{r, message=FALSE}
+y <- c(liners24ANI, liners25ANI, liners28ANI,liners29ANI, liners30ANI)
+
+strain <- rep(c("liners24", "liners25", "liners28", "liners29", "liners30"), each = 25)
+
+l <- lm(y~strain)
+
+#anova(l)
+
+#Check assupmtions of homokedascity and normality
+shapiro.test(l$residuals)
+bartlett.test(l$resid, strain)
+
+
+#Assumptions are not met, use nonparametric ANOVA
+kruskal.test(y~strain)
+#small p-val, so appears to be significant difference between strains
+```
+
+
+Liners post-hoc strain variance
+```{r, message=FALSE}
+TukeyHSD(aov(y~strain), conf.level=0.95)
+an.m<-aov(y~strain)
+l<- LSD.test(an.m,"strain",p.adj = "bonferroni")
+l
+```
+
+
+Liners kernal density
+```{r}
+all<-y
+boot<-sample(all,size=10000,replace = TRUE)
+d<-density(boot) #kernel density estimation
+df<-data.frame(boot)
+df%>%
+  ggplot( aes(x=boot)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+
+  ggtitle("Density plot of ANI value for Liners") + xlab("ANI values(bootstrapped)")
+```
+
+Liners empirical p
+```{r}
+testANI <- read.csv("/Users/leahboger/Desktop/Lacto_ANI (1)/LI_ANI-Table 1.csv")
+
+testANI$strain_loc1 <- paste(testANI$X, testANI$X.1)
+
+testANI <- testANI %>% select(strain_loc1, X3559_24, X3559_25, X3559_28, X3559_29, X3559_30)
+
+columns = paste(names(testANI),as.matrix(testANI[1,]))
+colnames(testANI) = columns
+
+testANI <- testANI[-1, ]
+colnames(testANI)[1] ="strain_loc1"
+
+testANI <- testANI %>% pivot_longer(-strain_loc1, names_to = "strain_loc2", values_to = "ANI")
+
+testANI$ANI <- as.numeric(testANI$ANI)
+emp<-rep(0,nrow(testANI))
+for(i in 1:nrow(testANI))
+{emp[i]<-pemp(testANI$ANI[i],boot, prob.method = "emp.probs")}
+t<-cbind(testANI,emp)
+head(t) %>% arrange(-emp)
+```
+
+
+## Lgasseri
+
+load data
+```{r, message=FALSE}
+lgasseri10 <- readr::read_tsv("/Users/leahboger/Desktop/Lgasseri_ANI/3559_10_ANI.tsv", col_names = FALSE)
+lgasseri10ANI <- data.frame(lgasseri10)
+lgasseri10ANI <- lgasseri10ANI[,3]
+
+lgasseri53 <- readr::read_tsv("/Users/leahboger/Desktop/Lgasseri_ANI/3329_53_ANI.tsv", col_names = FALSE)
+lgasseri53ANI <- data.frame(lgasseri53)
+lgasseri53ANI <- lgasseri53ANI[,3]
+
+lgasseri54 <- readr::read_tsv("/Users/leahboger/Desktop/Lgasseri_ANI/3329_54_ANI.tsv", col_names = FALSE)
+lgasseri54ANI <- data.frame(lgasseri54)
+lgasseri54ANI <- lgasseri54ANI[,3]
+
+lgasseri56 <- readr::read_tsv("/Users/leahboger/Desktop/Lgasseri_ANI/3329_56_ANI.tsv", col_names = FALSE)
+lgasseri56ANI <- data.frame(lgasseri56)
+lgasseri56ANI <- lgasseri56ANI[,3]
+
+```
+
+
+
+Lgasseri test for difference between strain
+```{r, message=FALSE}
+y <- c(lgasseri10ANI, lgasseri53ANI, lgasseri54ANI, lgasseri56ANI)
+
+strain <- rep(c("lgasseri10", "lgasseri53", "lgasseri54", "lgasseri56"), each = 25)
+
+l <- lm(y~strain)
+
+#anova(l)
+
+#check assumptions of normality and homoskadaticity
+shapiro.test(l$residuals)
+bartlett.test(l$resid, strain)
+
+
+#Assumptions not met, use nonparametric ANOVA
+kruskal.test(y~strain)
+#small p-val, so appears to be significant difference between strains
+```
+
+
+Lgasseri post-hoc strain variance
+```{r, message=FALSE}
+TukeyHSD(aov(y~strain), conf.level=0.95)
+an.m<-aov(y~strain)
+l<- LSD.test(an.m,"strain",p.adj = "bonferroni")
+l
+```
+
+
+Lgasseri kernal density
+```{r}
+all<-y
+boot<-sample(all,size=10000,replace = TRUE)
+d<-density(boot) #kernel density estimation
+df<-data.frame(boot)
+df%>%
+  ggplot( aes(x=boot)) +
+  geom_density(fill="#69b3a2", color="#e9ecef", alpha=0.8)+
+  ggtitle("Density plot of ANI value for Lgasseri") + xlab("ANI values(bootstrapped)")
+```
+
+
+Lgasseri empirical p
+```{r}
+testANI <- read.csv("/Users/leahboger/Desktop/Lacto_ANI (1)/LG_ANI-Table 1.csv")
+
+testANI$strain_loc1 <- paste(testANI$X, testANI$X.1)
+
+testANI <- testANI %>% select(strain_loc1, X3329_53, X3329_54, X3329_56, X3513_21, X3559_10, X3559_9)
+
+columns = paste(names(testANI),as.matrix(testANI[1,]))
+colnames(testANI) = columns
+
+testANI <- testANI[-1, ]
+colnames(testANI)[1] ="strain_loc1"
+
+testANI <- testANI %>% pivot_longer(-strain_loc1, names_to = "strain_loc2", values_to = "ANI")
+
+testANI$ANI <- as.numeric(testANI$ANI)
+emp<-rep(0,nrow(testANI))
+for(i in 1:nrow(testANI))
+{emp[i]<-pemp(testANI$ANI[i],boot, prob.method = "emp.probs")}
+t<-cbind(testANI,emp)
+head(t) %>% arrange(-emp)
+```
