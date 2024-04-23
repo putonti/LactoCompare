@@ -7,4 +7,4 @@ Code used to parse a file of CRISPR spacer sequences. The file was formatted as 
 * Each spacer sequence listed on a new line following the header
 
 ## calculate_SNP.py
-Code used to parse fasta-format alignment file to compute SNP%.
+Code used to parse fasta-format alignment file to compute SNP%. Assumes pair-wise alignment file.
