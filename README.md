@@ -6,3 +6,5 @@ Code used to parse a file of CRISPR spacer sequences. The file was formatted as 
 * Header: strain + "|" + Participant_ID + Time_of_Collection + Sample_Site
 * Each spacer sequence listed on a new line following the header
 
+## calculate_SNP.py
+Code used to parse fasta-format alignment file to compute SNP%.
